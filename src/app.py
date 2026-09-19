@@ -4,7 +4,7 @@ from html import escape
 from utils.pdf import extract_text_from_pdf
 from utils.llm import parse_resume, review_resume
 from utils.resume_pdf import generate_resume_pdf,merge_revised_resume
-
+from agent import run_resume_agent
 
 def _display_value(value):
     return escape(str(value)) if value not in (None, "") else ""
