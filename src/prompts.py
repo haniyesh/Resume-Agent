@@ -85,7 +85,19 @@ LLM_YAML_PARSE_PROMPT = """
 4. Format the output as a valid YAML document that matches the schema.
 5. Make sure to add double quotes around the values that are strings. This is important for the YAML parser.
 
-**Note:** Ensure that the output is a well-formed YAML document and all dates are in the format `YYYY-MM-DD`. If any field is not applicable or not found in the resume, you can leave it as `null` or an empty array.
+**Note:** Ensure that the output is a well-formed YAML document and all dates are in the format `YYYY-MM-DD`. For any section that is not present in the resume, output it as an empty list `[]` (for example `skills: []`). Do NOT invent placeholder or empty entries such as `[null]`, `[]` entries containing `null`, or mappings whose fields are all `null`.
+"""
+
+YAML_REPAIR_PROMPT = """
+Your previous output was not valid YAML.
+
+**Parser Error:**
+{error}
+
+**Invalid YAML:**
+{invalid_yaml}
+
+**Task:** Fix the YAML so it parses correctly. Do NOT change the meaning of the data. Return ONLY the corrected YAML document inside a ```yaml code block```, without any additional text.
 """
 
 REVIEW_OUTPUT_SCHEMA = """
@@ -124,6 +136,32 @@ RESUME_REVIEW_PROMPT = """
 
 - Please provide the output strictly in the above YAML format, without any additional explanations or text.
 - Make sure to add double quotes around the values that are strings. This is important for the YAML parser.
+- The output must be a single mapping: each top-level key is a section name, and its value is a mapping with exactly the keys `impact_level`, `revised_content`, and `revision_suggestion`.
+- For sections whose content is a list (for example `skills` or `interests`), do NOT put plain list items directly under the section name. Instead keep the three keys at the section level and place the revised list under `revised_content`, like this:
+
+```yaml
+skills:
+  impact_level: Medium
+  revised_content:
+    - "Python"
+    - "FastAPI"
+  revision_suggestion:
+    - "Add more technical skills"
+```
+"""
+
+JOB_TITLES_PROMPT = """
+**Task:** Extract up to {max_titles} job titles from the resume text below. Base titles on the candidate's work experience, roles, and summary. Return ONLY a valid YAML list of strings, for example:
+
+```yaml
+- "Data Engineer"
+- "Machine Learning Engineer"
+```
+
+Do NOT invent roles that are not in the resume. If no job titles are found, return an empty list.
+
+**Resume text:**
+{resume_text}
 """
 
 JOB_DESCRIPTION_REVIEW_PROMPT = """
@@ -142,6 +180,8 @@ JOB_DESCRIPTION_REVIEW_PROMPT = """
    - The revised version of the text.
    - A list of suggestions on how to improve the section.
 
+4. For the `skills` section, identify the technical skills required by the job description that are currently missing from the resume and include them inside the `revised_content` list, alongside the existing skills. Do not drop any existing skill.
+
 **YAML Output Schema:**
 
 ```yaml
@@ -152,4 +192,16 @@ JOB_DESCRIPTION_REVIEW_PROMPT = """
 
 - Please provide the output strictly in the above YAML format, without any additional explanations or text.
 - Make sure to add double quotes around the values that are strings. This is important for the YAML parser.
+- The output must be a single mapping: each top-level key is a section name, and its value is a mapping with exactly the keys `impact_level`, `revised_content`, and `revision_suggestion`.
+- For sections whose content is a list (for example `skills` or `interests`), do NOT put plain list items directly under the section name. Instead keep the three keys at the section level and place the revised list under `revised_content`, like this:
+
+```yaml
+skills:
+  impact_level: Medium
+  revised_content:
+    - "Python"
+    - "FastAPI"
+  revision_suggestion:
+    - "Add more technical skills"
+```
 """

@@ -19,6 +19,43 @@ from reportlab.platypus import (
 )
 
 
+def _as_str_list(value):
+    """Normalize skills content into a list of strings, handling block scalars."""
+    if value in (None, "", [], {}):
+        return []
+    if isinstance(value, str):
+        items = []
+        for line in value.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            if line.startswith("-"):
+                line = line[1:].strip()
+            line = line.strip('"').strip("'")
+            if line:
+                items.append(line)
+        return items
+    if isinstance(value, list):
+        items = []
+        for item in value:
+            items.extend(_as_str_list(item))
+        return items
+    return [str(value).strip()]
+
+
+def _merge_skills(original, revised):
+    """Union original and revised skills so none are dropped."""
+    original_list = _as_str_list(original)
+    revised_list = _as_str_list(revised)
+    seen = {item.lower() for item in original_list}
+    merged = list(original_list)
+    for item in revised_list:
+        if item and item.lower() not in seen:
+            seen.add(item.lower())
+            merged.append(item)
+    return merged
+
+
 def merge_revised_resume(resume_data, review_data):
     """Return the original resume with available revised sections applied."""
     merged = {}
@@ -27,8 +64,17 @@ def merge_revised_resume(resume_data, review_data):
             merged[section_name] = original_content
             continue
 
-        review = (review_data or {}).get(section_name) or {}
+        review = (review_data or {}).get(section_name)
+        if not isinstance(review, dict):
+            merged[section_name] = original_content
+            continue
+
         revised_content = review.get("revised_content")
+
+        if section_name == "skills":
+            merged[section_name] = _merge_skills(original_content, revised_content)
+            continue
+
         merged[section_name] = (
             revised_content if revised_content not in (None, "", [], {}) else original_content
         )
@@ -39,6 +85,21 @@ def _text(value):
     if value is None:
         return ""
     return escape(str(value))
+
+
+_NULL_TEXT = {"none", "null", "n/a", "na", "-"}
+
+
+def _has_content(value):
+    """True only if value contains any real, non-placeholder data."""
+    if value is None:
+        return False
+    if isinstance(value, (list, tuple)):
+        return any(_has_content(item) for item in value)
+    if isinstance(value, dict):
+        return any(_has_content(item) for item in value.values())
+    text = str(value).strip()
+    return bool(text) and text.lower() not in _NULL_TEXT
 
 
 def _content_flowables(value, styles, level=0):
@@ -83,9 +144,11 @@ def _metadata(item):
 
 
 def _entry_flowables(items, title_key, organization_key, styles):
+    if not _has_content(items):
+        return []
     flowables = []
     for item in items or []:
-        if not isinstance(item, dict):
+        if not isinstance(item, dict) or not _has_content(item):
             continue
 
         title = _text(item.get(title_key, ""))
@@ -102,10 +165,13 @@ def _entry_flowables(items, title_key, organization_key, styles):
             flowables.append(Paragraph(_text(metadata), styles["Meta"]))
 
         description = item.get("description")
-        if description:
+        if _has_content(description):
             flowables.append(Paragraph(_text(description), styles["Body"]))
 
-        bullet_items = item.get("achievements") or item.get("honors") or []
+        bullet_items = [
+            value for value in (item.get("achievements") or item.get("honors") or [])
+            if _has_content(value)
+        ]
         if bullet_items:
             flowables.append(
                 ListFlowable(
@@ -174,7 +240,7 @@ def _resume_story(resume_data, styles):
 
     left = []
     summary = resume_data.get("summary")
-    if summary:
+    if _has_content(summary):
         left.extend(_section("Highlights", [Paragraph(_text(summary), styles["Body"])], styles))
 
     left.extend(
@@ -191,9 +257,16 @@ def _resume_story(resume_data, styles):
             styles,
         )
     )
+    left.extend(
+        _section(
+            "Volunteer Experience",
+            _entry_flowables(resume_data.get("volunteer_experience"), "role", "organization", styles),
+            styles,
+        )
+    )
 
     right = []
-    skills = resume_data.get("skills") or []
+    skills = [skill for skill in (resume_data.get("skills") or []) if _has_content(skill)]
     if skills:
         right.extend(_section("Skills", [Paragraph(_text(", ".join(str(skill) for skill in skills)), styles["Body"])], styles))
 
@@ -201,7 +274,7 @@ def _resume_story(resume_data, styles):
     certificates = [
         ListItem(Paragraph(f"<b>{_text(item.get('title', ''))}</b><br/>{_text(item.get('issuer', ''))}", styles["Body"]))
         for item in certifications
-        if isinstance(item, dict)
+        if isinstance(item, dict) and _has_content(item)
     ]
     if certificates:
         right.extend(_section("Certificates", [ListFlowable(certificates, bulletType="bullet", leftIndent=12)], styles))
@@ -216,13 +289,46 @@ def _resume_story(resume_data, styles):
     )
 
     languages = resume_data.get("languages") or []
-    language_items = [
-        f"<b>{_text(item.get('language', ''))}</b> | {_text(item.get('proficiency', ''))}"
-        for item in languages
-        if isinstance(item, dict)
-    ]
+    language_items = []
+    for item in languages:
+        if not isinstance(item, dict) or not _has_content(item.get("language")):
+            continue
+        language = _text(item["language"])
+        proficiency = item.get("proficiency")
+        if _has_content(proficiency):
+            language_items.append(f"<b>{language}</b> | {_text(proficiency)}")
+        else:
+            language_items.append(f"<b>{language}</b>")
     if language_items:
         right.extend(_section("Languages", [Paragraph("<br/>".join(language_items), styles["Body"])], styles))
+
+    interests = [interest for interest in (resume_data.get("interests") or []) if _has_content(interest)]
+    if interests:
+        right.extend(
+            _section(
+                "Interests",
+                [Paragraph(_text(", ".join(str(interest) for interest in interests)), styles["Body"])],
+                styles,
+            )
+        )
+
+    references = resume_data.get("references") or []
+    reference_items = []
+    for item in references:
+        if not isinstance(item, dict) or not _has_content(item):
+            continue
+        name = _text(item.get("name", ""))
+        rest = [_text(item["relationship"])] if _has_content(item.get("relationship")) else []
+        contact = item.get("contact_info")
+        if isinstance(contact, dict):
+            for key in ("phone", "email"):
+                if _has_content(contact.get(key)):
+                    rest.append(_text(contact[key]))
+                    break
+        line = f"<b>{name}</b>" + (f" | {' | '.join(rest)}" if rest else "")
+        reference_items.append(ListItem(Paragraph(line, styles["Body"])))
+    if reference_items:
+        right.extend(_section("References", [ListFlowable(reference_items, bulletType="bullet", leftIndent=12)], styles))
 
  
     return [

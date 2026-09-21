@@ -22,35 +22,75 @@ ResumeAI is an advanced tool that leverages the power of Large Language Models (
 
 ## Usage
 
-1. Run the Streamlit app:
-
-   Set your Gemini API key in PowerShell:
+1. Make sure Ollama is installed and running (`ollama serve`), then pull a model:
    ```
-   $env:GEMINI_API_KEY="<your_gemini_api_key>"
-   $env:PYTHONPATH=(Get-Location).Path
-   $env:LLM_MODEL="gemini-3.6-flash"
-   streamlit run src/app.py --server.enableXsrfProtection false
+   ollama pull llama3.2
    ```
 
-2. Open your web browser and navigate to the provided local URL (usually `http://localhost:8501`).
+2. Run the Streamlit app:
+   ```
+   PYTHONPATH=$(pwd) streamlit run src/app.py --server.enableXsrfProtection false
+   ```
 
-3. Upload your resume PDF file using the file uploader in the sidebar.
+3. Open your web browser and navigate to the provided local URL (usually `http://localhost:8501`).
 
-4. (Optional) Enter a job description in the text area provided.
+4. Upload your resume PDF file using the file uploader in the sidebar.
 
-5. Click the "Run Analysis" button to start the resume parsing and review process.
+5. (Optional) Enter a job description in the text area provided.
 
-6. Navigate through different sections of your resume using the arrow buttons.
+6. Click the "Run Analysis" button to start the resume parsing and review process.
 
-7. Review the original content, revised content, and improvement suggestions for each section.
+7. Navigate through different sections of your resume using the arrow buttons.
+
+8. Review the original content, revised content, and improvement suggestions for each section.
+
+## Configuration
+
+LLM settings are read from `.env` (see `.env.example`):
+
+- `OLLAMA_BASE_URL`: Ollama server URL (default `http://localhost:11434`).
+- `LLM_MODEL`: Ollama model to use (default `llama3.2`).
+
+## React Dashboard
+
+A React + FastAPI dashboard is available in `dashboard/`. It reuses the same
+Python logic in `src/` (resume parsing, LLM job-title extraction, Adzuna search).
+
+### Backend (FastAPI)
+
+From the project root:
+
+```
+uvicorn dashboard.backend.main:app --reload
+```
+
+The API listens on `http://localhost:8000` and exposes:
+
+- `POST /api/extract-titles` — upload a resume PDF, returns extracted job titles.
+- `POST /api/search-jobs` — search Adzuna for a title + optional location.
+- `GET /api/health` — health check.
+
+### Frontend (React + Vite)
+
+```
+cd dashboard/frontend
+npm install
+npm run dev
+```
+
+Open `http://localhost:5173`. The frontend talks to the backend at
+`http://localhost:8000` by default; override with a `VITE_API_BASE` env var.
 
 ## Project Structure
 
-- `app.py`: Main Streamlit application file.
-- `src/utils/pdf.py`: Contains functions for extracting text from PDF files.
-- `src/utils/llm.py`: Includes functions for parsing resumes and reviewing them using LLMs.
-- `resume_formatter.py`: Handles the formatting of resume content for display.
-- `src/images/banner.png`: Banner image for the application.
+- `src/`: Shared Python logic (PDF parsing, LLM prompts, Adzuna search).
+- `src/utils/pdf.py`: Functions for extracting text from PDF files.
+- `src/utils/llm.py`: Parsing resumes, extracting job titles, and reviewing via LLMs.
+- `src/utils/search_jobs.py`: Adzuna job search client.
+- `dashboard/backend/`: FastAPI app exposing the Python logic as a REST API.
+- `dashboard/frontend/`: React + Vite dashboard UI.
+- `tests/`: Pytest tests.
+- `src/app.py`: Legacy Streamlit application.
 
 ## Dependencies
 
