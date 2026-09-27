@@ -3,9 +3,12 @@
 # Python
 __pycache__/
 *.pyc
-.venv/
+.venv*/
 .pytest_cache/
 
 # Node / frontend
 node_modules/
 dist/
+
+# Browser session (holds login cookies)
+src/data/*_session.json

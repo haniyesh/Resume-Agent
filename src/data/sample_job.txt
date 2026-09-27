@@ -1,0 +1,40 @@
+Machine Learning Engineer, NLP
+Company: Example AI Labs
+Location: Toronto, Canada (Hybrid)
+
+About the role
+We are looking for a Machine Learning Engineer to design, build, and ship
+natural language processing systems that reach production. You will own
+models end to end, from research and evaluation to deployment, monitoring,
+and iteration against real user data.
+
+Responsibilities
+- Design, train, and fine-tune transformer-based NLP models (LLMs, BERT-style
+  encoders) for tasks such as text classification, named entity extraction,
+  question answering, and conversational agents.
+- Build and maintain data pipelines for data cleaning, annotation, augmentation,
+  and versioned training corpora.
+- Evaluate models with appropriate offline metrics and online A/B tests, and
+  report results clearly to non-technical stakeholders.
+- Deploy, serve, and monitor models in production, including latency, cost, and
+  reliability trade-offs.
+- Collaborate with backend and platform engineers to integrate models into
+  services, and with product teams to shape feature direction.
+- Stay current with the research literature and apply it selectively to
+  production problems.
+- Mentor junior engineers and contribute to code review and technical writing.
+
+Requirements
+- 3+ years of professional experience building production machine learning or
+  NLP systems.
+- Strong Python skills, including hands-on experience with PyTorch or
+  TensorFlow, scikit-learn, Hugging Face Transformers, and pandas.
+- Solid understanding of transformer architectures, embeddings, attention,
+  tokenization, decoding strategies, and evaluation methodology.
+- Experience with retrieval, ranking, or dialogue systems is a strong plus.
+- Familiarity with MLOps tooling: Docker, Git, CI/CD, experiment tracking, and
+  model serving frameworks.
+- Excellent written and verbal communication; able to explain trade-offs
+  clearly.
+- MS or PhD in Computer Science, Machine Learning, or a related field, or
+  equivalent practical experience.
