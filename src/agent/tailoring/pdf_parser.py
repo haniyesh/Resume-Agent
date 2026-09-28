@@ -1,4 +1,4 @@
-import fitz  # PyMuPDF
+import pymupdf  # PyMuPDF
 import re
 
 def extract_text_from_pdf(pdf_path: str) -> str:
@@ -13,7 +13,7 @@ def extract_text_from_pdf(pdf_path: str) -> str:
     """
     try:
         # 1. Open the PDF document using PyMuPDF
-        document = fitz.open(pdf_path)
+        document = pymupdf.open(pdf_path)
         full_text = ""
         
         # 2. Iterate through all pages and extract text
