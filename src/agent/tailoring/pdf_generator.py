@@ -1,5 +1,21 @@
 import json
+import unicodedata
 from fpdf import FPDF
+
+_REPLACEMENTS = {
+    "—": "-", "–": "-", "‘": "'", "’": "'",
+    "“": '"', "”": '"', "•": "-", "…": "...",
+    " ": " ", "→": "->", "≥": ">=", "≤": "<=",
+}
+
+
+def safe_text(value) -> str:
+    """Core PDF fonts are latin-1 only; fold anything else to ASCII."""
+    text = value if isinstance(value, str) else str(value)
+    for src, dst in _REPLACEMENTS.items():
+        text = text.replace(src, dst)
+    return text.encode("latin-1", "replace").decode("latin-1")
+
 
 # =================================================================
 # 1. Resume PDF Class Definition
@@ -13,20 +29,20 @@ class ResumePDF(FPDF):
         """ Renders the candidate's name and contact information """
         self.set_font("helvetica", "B", 24)
         # RGB Color (Dark Blue for professional look)
-        self.set_text_color(44, 62, 80) 
-        self.cell(0, 10, name, new_x="LMARGIN", new_y="NEXT", align="C")
-        
+        self.set_text_color(44, 62, 80)
+        self.cell(0, 10, safe_text(name), new_x="LMARGIN", new_y="NEXT", align="C")
+
         self.set_font("helvetica", "", 11)
         self.set_text_color(127, 140, 141) # Gray color
-        self.cell(0, 8, contact_info, new_x="LMARGIN", new_y="NEXT", align="C")
+        self.cell(0, 8, safe_text(contact_info), new_x="LMARGIN", new_y="NEXT", align="C")
         self.ln(5) # Add a small line break (margin)
 
     def add_section_title(self, title: str):
         """ Renders a section title (e.g., SKILLS, EXPERIENCE) with a bottom line """
         self.set_font("helvetica", "B", 14)
         self.set_text_color(41, 128, 185) # Blue color
-        self.cell(0, 10, title.upper(), new_x="LMARGIN", new_y="NEXT", align="L")
-        
+        self.cell(0, 10, safe_text(title.upper()), new_x="LMARGIN", new_y="NEXT", align="L")
+
         # Draw a horizontal line under the title
         current_y = self.get_y()
         self.line(self.l_margin, current_y, self.w - self.r_margin, current_y)
@@ -37,7 +53,9 @@ class ResumePDF(FPDF):
         self.set_font("helvetica", "", 11)
         self.set_text_color(0, 0, 0) # Black color
         # multi_cell automatically handles text wrapping for long paragraphs
-        self.multi_cell(0, 6, text, new_x="LMARGIN", new_y="NEXT")
+        if isinstance(text, (list, tuple)):
+            text = "\n".join(f"- {item}" for item in text)
+        self.multi_cell(0, 6, safe_text(text), new_x="LMARGIN", new_y="NEXT")
         self.ln(5)
 
 # =================================================================
@@ -56,9 +74,12 @@ def generate_tailored_pdf(resume_data: dict, output_filename: str):
     pdf.set_margins(20, 20, 20)
 
     # 1. Header Section
+    contact_info = resume_data.get("contact", resume_data.get("contract", "Email | LinkedIn | GitHub"))
+    if isinstance(contact_info, dict):
+        contact_info = " | ".join(f"{k.title()}: {v}" for k, v in contact_info.items())
     pdf.add_custom_header(
         name=resume_data.get("name", "Candidate Name"),
-        contact_info=resume_data.get("contact", "Email | LinkedIn | GitHub")
+        contact_info=str(contact_info)
     )
 
     # 2. Summary Section
@@ -72,15 +93,33 @@ def generate_tailored_pdf(resume_data: dict, output_filename: str):
         pdf.add_section_body(resume_data["skills"])
 
     # 4. Experience / Projects Section
-    if "projects" in resume_data:
+    if resume_data.get("projects"):
         pdf.add_section_title("Relevant Projects & Research")
         for project in resume_data["projects"]:
             # Render Project Title in Bold
             pdf.set_font("helvetica", "B", 11)
-            pdf.cell(0, 6, project["title"], new_x="LMARGIN", new_y="NEXT")
+            pdf.cell(0, 6, safe_text(project.get("title", "")), new_x="LMARGIN", new_y="NEXT")
             # Render Project Description in Regular font
             pdf.set_font("helvetica", "", 11)
-            pdf.multi_cell(0, 6, project["description"], new_x="LMARGIN", new_y="NEXT")
+            description = project.get("description", "")
+            if isinstance(description, (list, tuple)):
+                description = "\n".join(f"- {item}" for item in description)
+            pdf.multi_cell(0, 6, safe_text(description), new_x="LMARGIN", new_y="NEXT")
+            pdf.ln(3)
+
+    # 5. Education Section
+    if resume_data.get("education"):
+        pdf.add_section_title("Education")
+        for entry in resume_data["education"]:
+            pdf.set_font("helvetica", "B", 11)
+            pdf.cell(0, 6, safe_text(entry.get("degree", "")), new_x="LMARGIN", new_y="NEXT")
+            pdf.set_font("helvetica", "", 11)
+            institution = str(entry.get("institution", ""))
+            details = str(entry.get("details", "")).strip()
+            if details:
+                institution = f"{institution} - {details}" if institution else details
+            if institution:
+                pdf.multi_cell(0, 6, safe_text(institution), new_x="LMARGIN", new_y="NEXT")
             pdf.ln(3)
 
     # Save the file to disk

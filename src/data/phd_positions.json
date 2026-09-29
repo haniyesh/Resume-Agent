@@ -1,5 +1,12 @@
 [
   {
-    "url": "https://example.com/phd-position"
+    "title": "PhD Position in Multimodal AI and Intent Recognition",
+    "university": "Technical University of Munich",
+    "description": "We are seeking a highly motivated PhD candidate to research uncertainty-aware few-shot user adaptation for multimodal intent recognition. The project involves working with visual and textual data. Requirements: Master's in Artificial Intelligence or Computer Science, strong Python programming, and experience with computer vision and vector databases (e.g., Qdrant)."
+  },
+  {
+    "title": "PhD in Financial Market Analysis using Machine Learning",
+    "university": "University of Zurich",
+    "description": "This PhD project explores the application of Hidden Markov Models (HMM) and regime-switching algorithms to detect financial market stress. The candidate will work extensively with time-series data and predictive modeling. Requirements: Proficiency in Python, algorithm development (MQL5 or Pine Script), and a strong mathematical optimization background (Gauss-Newton, Line Search)."
   }
 ]

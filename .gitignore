@@ -12,3 +12,6 @@ dist/
 
 # Browser session (holds login cookies)
 src/data/*_session.json
+
+# Generated tailored CVs
+Haniye_CV_*.pdf

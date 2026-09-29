@@ -2,7 +2,7 @@ import os
 import json
 from dotenv import load_dotenv
 from agent.tailoring.pdf_parser import extract_text_from_pdf, clean_resume_text
-from agent.tailoring .llm_matcher import tailor_resume_with_llm
+from config import tailor_resume_with_llm
 from agent.tailoring.pdf_generator import generate_resume_pdf
 
 

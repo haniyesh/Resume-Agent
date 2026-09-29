@@ -7,3 +7,8 @@ fastapi==0.115.2
 unicorn==0.27.0
 python-multipart==0.0.6
 playwright
+openai
+PyMuPDF
+fpdf2
+beautifulsoup4
+

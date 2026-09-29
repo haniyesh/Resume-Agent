@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  resume-agent:
+    build: .
+    container_name: resume_agent_container
+    volumes:
+      # مانت کردن پوشه دیتا برای دسترسی به فایل‌های ورودی و ذخیره PDFهای خروجی روی سیستم شما
+      - ./data:/app/data
+    environment:
+      # آدرس Ollama از دید کانتینر
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434/v1
+    extra_hosts:
+      # ایجاد ارتباط بین کانتینر و سیستم میزبان (Host)
+      - "host.docker.internal:host-gateway"
